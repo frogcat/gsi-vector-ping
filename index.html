@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no" />
+<title>gsi-vector-ping</title>
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-1.0.0-b1/leaflet.css" />
+<script src="http://cdn.leafletjs.com/leaflet-1.0.0-b1/leaflet.js"></script>
+<style>
+body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+#map {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	top: 0;
+	left: 0;
+	margin: 0;
+	padding: 0;
+}
+
+[data-status] {
+	background: rgba(0, 0, 0, 0.5);
+	color: white;
+	border: 1px solid black;
+	font-family: Consolas;
+	font-weight: bold;
+	font-size: 28pt;
+	text-align: center;
+}
+
+[data-status='404'] {
+	background: rgba(127, 0, 0, 0.4);
+}
+
+[data-status='200'] {
+	background: rgba(0, 127, 0, 0.4);
+}
+</style>
+</head>
+<body>
+	<div id="map"></div>
+	<script>
+		L.PingLayer = L.GridLayer.extend({
+			options : {
+				pane : 'overlayPane'
+			},
+			initialize : function(url, options) {
+				this._url = url;
+				L.setOptions(this, options);
+			},
+			createTile : function(coords, done) {
+				var tile = document.createElement('div');
+				var url = L.Util.template(this._url, coords);
+				var that = this;
+				var x = new XMLHttpRequest();
+				var t1 = new Date().getTime();
+				x.open("GET", url, true);
+				x.onreadystatechange = function() {
+					if (done && x.readyState == 4)
+						done(null, tile);
+					var t2 = new Date().getTime();
+					tile.setAttribute("data-status", x.status);
+					tile.innerHTML = "Code: " + x.status + "<br/>Time: " + (t2 - t1);
+				};
+				x.send();
+				return tile;
+			}
+		});
+
+		var map = L.map("map", {
+			zoom : 15,
+			center : [ 35.676542, 139.71764115 ]
+		});
+
+		L.tileLayer('http://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg', {
+			attribution : "<a href='http://maps.gsi.go.jp/development/'>地理院タイル・オルソ画像(国土地理院)</a>",
+			minZoom : 13,
+			maxZoom : 17
+		}).addTo(map);
+
+		(new L.PingLayer('http://cyberjapandata.gsi.go.jp/xyz/experimental_anno/{z}/{x}/{y}.geojson', {
+			attribution : "<a href='https://github.com/gsi-cyberjapan/experimental_anno'>"
+					+ "国土地理院ベクトルタイル提供実験（地図情報（注記））</a>",
+			minZoom : 15,
+			maxZoom : 15
+		})).addTo(map);
+	</script>
+</body>
+</html>
